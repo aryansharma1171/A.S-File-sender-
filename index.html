@@ -2,15 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>A.S send files freely</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/html5-qrcode"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     body {
       margin: 0;
-      font-family: 'Inter', sans-serif;
+      font-family: 'Segoe UI', sans-serif;
       background: linear-gradient(145deg, #0d0d0d, #1c1c1c);
       color: white;
       display: flex;
@@ -33,7 +32,7 @@
     }
 
     h1, h2 {
-      font-size: 1.8rem;
+      font-size: 1.6rem;
       margin-bottom: 1rem;
     }
 
@@ -95,19 +94,14 @@
       margin-top: 1rem;
       width: 100%;
     }
-
-    @media (max-width: 480px) {
-      h1, h2 {
-        font-size: 1.5rem;
-      }
-    }
   </style>
 </head>
 <body>
 
   <div class="card">
     <h1>A.S send files freely</h1>
-    <input type="file" id="fileInput" accept="image/*,video/*" />
+    <input type="file" id="fileInput" />
+    <div id="status"></div>
     <div id="downloadSection"></div>
     <div id="qrCode"></div>
   </div>
@@ -119,33 +113,48 @@
   </div>
 
   <script>
-    // QR Code Generator
-    document.getElementById('fileInput').addEventListener('change', function(event) {
-      const file = event.target.files[0];
+    const fileInput = document.getElementById("fileInput");
+    const status = document.getElementById("status");
+    const downloadSection = document.getElementById("downloadSection");
+    const qrCode = document.getElementById("qrCode");
+
+    fileInput.addEventListener("change", async function () {
+      const file = fileInput.files[0];
       if (!file) return;
 
-      const url = URL.createObjectURL(file);
+      status.innerHTML = "Uploading...";
+      downloadSection.innerHTML = "";
+      qrCode.innerHTML = "";
 
-      const downloadSection = document.getElementById('downloadSection');
-      downloadSection.innerHTML = `
-        <p><strong>${file.name}</strong></p>
-        <a href="${url}" download="${file.name}" class="download-link">Download File</a>
-      `;
+      const formData = new FormData();
+      formData.append("file", file);
 
-      const qrCode = document.getElementById('qrCode');
-      qrCode.innerHTML = '';
-      QRCode.toCanvas(url, {
-        color: { dark: '#ffffff', light: '#1c1c1c' }
-      }, function (error, canvas) {
-        if (error) {
-          qrCode.innerHTML = '<p>Failed to create QR</p>';
-          return;
+      try {
+        const res = await fetch("https://file.io", {
+          method: "POST",
+          body: formData
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          const link = data.link;
+          status.innerHTML = `<strong>${file.name}</strong> uploaded successfully!`;
+          downloadSection.innerHTML = `<a href="${link}" target="_blank" class="download-link">Download Link</a>`;
+
+          QRCode.toCanvas(link, {
+            color: { dark: "#ffffff", light: "#1c1c1c" }
+          }, (err, canvas) => {
+            if (!err) qrCode.appendChild(canvas);
+          });
+        } else {
+          status.innerHTML = "Upload failed.";
         }
-        qrCode.appendChild(canvas);
-      });
+      } catch (err) {
+        console.error(err);
+        status.innerHTML = "Error uploading file.";
+      }
     });
 
-    // QR Code Scanner
     function startScanner() {
       const reader = new Html5Qrcode("reader");
       reader.start(
@@ -156,12 +165,13 @@
           window.location.href = qrCodeMessage;
         },
         errorMessage => {
-          // optional: handle scan error
+          // ignore scan errors
         }
       ).catch(err => {
         document.getElementById("reader").innerHTML = "<p style='color:red;'>Camera access denied or not supported.</p>";
       });
     }
   </script>
+
 </body>
 </html>
