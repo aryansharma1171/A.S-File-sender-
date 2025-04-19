@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -13,51 +14,58 @@
       align-items: center;
       justify-content: center;
       padding: 2rem;
-    }h1 {
-  font-size: 2rem;
-  margin-bottom: 1rem;
-}
+    }
 
-.card {
-  background: #1e1e1e;
-  border-radius: 16px;
-  padding: 2rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  text-align: center;
-}
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
 
-input[type="file"] {
-  margin: 1rem 0;
-  padding: 1rem;
-  border: none;
-  background-color: #0d47a1;
-  color: white;
-  font-weight: bold;
-  border-radius: 10px;
-  cursor: pointer;
-  box-shadow: 0 6px 0 #08306b;
-}
+    .card {
+      background: #1e1e1e;
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      text-align: center;
+    }
 
-button {
-  margin-top: 1rem;
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 8px;
-  background-color: #2e7d32;
-  color: white;
-  font-size: 1rem;
-  cursor: pointer;
-}
+    input[type="file"] {
+      margin: 1rem 0;
+      padding: 1rem;
+      border: none;
+      background-color: #0d47a1;
+      color: white;
+      font-weight: bold;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 6px 0 #08306b;
+    }
 
-#qrCanvas {
-  margin-top: 1rem;
-}
+    button {
+      margin-top: 1rem;
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      background-color: #2e7d32;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+    }
 
-#status {
-  margin-top: 1rem;
-}
+    #qrCanvas {
+      margin-top: 1rem;
+    }
 
+    #status {
+      margin-top: 1rem;
+    }
+
+    #scanner {
+      width: 100%;
+      max-width: 300px;
+      margin-top: 1rem;
+    }
   </style>
 </head>
 <body>
@@ -67,8 +75,18 @@ button {
     <button onclick="startShare()">Send File</button>
     <canvas id="qrCanvas"></canvas>
     <p id="status"></p>
-  </div>  <script src="https://cdn.jsdelivr.net/npm/simple-peer@9/simplepeer.min.js"></script>  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>  <script>
+    <p>Or scan the QR code from another device:</p>
+    <video id="scanner" autoplay></video>
+    <p id="scannerStatus"></p>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/simple-peer@9/simplepeer.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
+  <script>
     let peer;
+    let scanner;
+    let currentQRData = null;
 
     function startShare() {
       const fileInput = document.getElementById('fileInput');
@@ -93,13 +111,12 @@ button {
       peer.on('error', err => console.error(err));
     }
 
-    // Receiver mode
+    // Receiver mode: Scanning QR Code
     if (window.location.hash) {
       const signalData = decodeURIComponent(window.location.hash.slice(1));
       peer = new SimplePeer({ initiator: false, trickle: false });
 
       peer.on('signal', data => {
-        // Copy this back to sender if needed
         console.log("Send this back to sender:", JSON.stringify(data));
       });
 
@@ -107,7 +124,6 @@ button {
         try {
           const meta = JSON.parse(data);
           if (meta.name) {
-            // Next message will be file buffer
             peer.once('data', buffer => {
               const blob = new Blob([buffer]);
               const url = URL.createObjectURL(blob);
@@ -121,6 +137,26 @@ button {
       });
 
       peer.signal(JSON.parse(signalData));
+    } else {
+      startScanner();
     }
-  </script></body>
+
+    // QR Code scanner setup
+    function startScanner() {
+      scanner = new ZXing.BrowserQRCodeReader();
+      scanner.decodeFromVideoDevice(null, 'scanner', (result, err) => {
+        if (result) {
+          document.getElementById('scannerStatus').innerText = 'QR code scanned!';
+          if (currentQRData !== result.text) {
+            currentQRData = result.text;
+            peer.signal(JSON.parse(result.text));
+          }
+        }
+        if (err) {
+          document.getElementById('scannerStatus').innerText = 'Error scanning QR code';
+        }
+      });
+    }
+  </script>
+</body>
 </html>
