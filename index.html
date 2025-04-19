@@ -1,179 +1,126 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>A.S send files freely</title>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>A.S send files freely - Peer to Peer</title>
   <style>
     body {
-      margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(145deg, #0d0d0d, #1c1c1c);
+      background-color: #121212;
       color: white;
+      font-family: Arial, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
-      min-height: 100vh;
-      padding: 1rem;
-    }
-
-    .card {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid #2a2a2a;
-      border-radius: 16px;
+      justify-content: center;
       padding: 2rem;
-      max-width: 450px;
-      width: 100%;
-      text-align: center;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-      margin-bottom: 2rem;
-    }
+    }h1 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
 
-    h1, h2 {
-      font-size: 1.6rem;
-      margin-bottom: 1rem;
-    }
+.card {
+  background: #1e1e1e;
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  text-align: center;
+}
 
-    input[type="file"] {
-      appearance: none;
-      background-color: #0d47a1;
-      color: white;
-      padding: 12px;
-      border: none;
-      border-radius: 10px;
-      font-weight: bold;
-      width: 100%;
-      cursor: pointer;
-      margin-top: 1rem;
-      box-shadow: 0 6px 0 #08306b;
-      transition: all 0.2s ease-in-out;
-    }
+input[type="file"] {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: none;
+  background-color: #0d47a1;
+  color: white;
+  font-weight: bold;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 6px 0 #08306b;
+}
 
-    input[type="file"]:hover {
-      background-color: #1565c0;
-      box-shadow: 0 4px 10px rgba(21, 101, 192, 0.6);
-      transform: translateY(-2px);
-    }
+button {
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  background-color: #2e7d32;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+}
 
-    button {
-      background-color: #212121;
-      color: white;
-      padding: 12px;
-      border: none;
-      border-radius: 10px;
-      width: 100%;
-      font-weight: bold;
-      margin-top: 1rem;
-      cursor: pointer;
-      box-shadow: 0 6px 0 #111;
-      transition: all 0.2s ease-in-out;
-    }
+#qrCanvas {
+  margin-top: 1rem;
+}
 
-    button:hover {
-      background-color: #333;
-      box-shadow: 0 4px 10px rgba(255, 255, 255, 0.2);
-      transform: translateY(-2px);
-    }
+#status {
+  margin-top: 1rem;
+}
 
-    a.download-link {
-      color: #4FC3F7;
-      font-weight: 500;
-      display: block;
-      margin-top: 0.5rem;
-      word-break: break-word;
-    }
-
-    canvas {
-      margin-top: 1rem;
-      border-radius: 8px;
-    }
-
-    #reader {
-      margin-top: 1rem;
-      width: 100%;
-    }
   </style>
 </head>
 <body>
-
   <div class="card">
     <h1>A.S send files freely</h1>
     <input type="file" id="fileInput" />
-    <div id="status"></div>
-    <div id="downloadSection"></div>
-    <div id="qrCode"></div>
-  </div>
+    <button onclick="startShare()">Send File</button>
+    <canvas id="qrCanvas"></canvas>
+    <p id="status"></p>
+  </div>  <script src="https://cdn.jsdelivr.net/npm/simple-peer@9/simplepeer.min.js"></script>  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>  <script>
+    let peer;
 
-  <div class="card">
-    <h2>Scan Sender's QR</h2>
-    <button onclick="startScanner()">Start QR Scanner</button>
-    <div id="reader"></div>
-  </div>
-
-  <script>
-    const fileInput = document.getElementById("fileInput");
-    const status = document.getElementById("status");
-    const downloadSection = document.getElementById("downloadSection");
-    const qrCode = document.getElementById("qrCode");
-
-    fileInput.addEventListener("change", async function () {
+    function startShare() {
+      const fileInput = document.getElementById('fileInput');
       const file = fileInput.files[0];
-      if (!file) return;
+      if (!file) return alert("Please select a file");
 
-      status.innerHTML = "Uploading...";
-      downloadSection.innerHTML = "";
-      qrCode.innerHTML = "";
+      peer = new SimplePeer({ initiator: true, trickle: false });
 
-      const formData = new FormData();
-      formData.append("file", file);
-
-      try {
-        // File.io API URL
-        const res = await fetch("https://file.io", {
-          method: "POST",
-          body: formData
-        });
-
-        const data = await res.json();
-
-        if (data.success) {
-          const link = data.link;
-          status.innerHTML = `<strong>${file.name}</strong> uploaded successfully!`;
-          downloadSection.innerHTML = `<a href="${link}" target="_blank" class="download-link">Download Link</a>`;
-
-          QRCode.toCanvas(link, {
-            color: { dark: "#ffffff", light: "#1c1c1c" }
-          }, (err, canvas) => {
-            if (!err) qrCode.appendChild(canvas);
-          });
-        } else {
-          status.innerHTML = "Upload failed.";
-        }
-      } catch (err) {
-        console.error(err);
-        status.innerHTML = "Error uploading file.";
-      }
-    });
-
-    function startScanner() {
-      const reader = new Html5Qrcode("reader");
-      reader.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: 250 },
-        qrCodeMessage => {
-          reader.stop();
-          window.location.href = qrCodeMessage;
-        },
-        errorMessage => {
-          // ignore scan errors
-        }
-      ).catch(err => {
-        document.getElementById("reader").innerHTML = "<p style='color:red;'>Camera access denied or not supported.</p>";
+      peer.on('signal', data => {
+        const json = JSON.stringify(data);
+        QRCode.toCanvas(document.getElementById('qrCanvas'), json);
       });
-    }
-  </script>
 
-</body>
+      peer.on('connect', () => {
+        document.getElementById('status').innerText = "Connected. Sending file...";
+        file.arrayBuffer().then(buf => {
+          peer.send(JSON.stringify({ name: file.name, size: file.size }));
+          peer.send(buf);
+        });
+      });
+
+      peer.on('error', err => console.error(err));
+    }
+
+    // Receiver mode
+    if (window.location.hash) {
+      const signalData = decodeURIComponent(window.location.hash.slice(1));
+      peer = new SimplePeer({ initiator: false, trickle: false });
+
+      peer.on('signal', data => {
+        // Copy this back to sender if needed
+        console.log("Send this back to sender:", JSON.stringify(data));
+      });
+
+      peer.on('data', data => {
+        try {
+          const meta = JSON.parse(data);
+          if (meta.name) {
+            // Next message will be file buffer
+            peer.once('data', buffer => {
+              const blob = new Blob([buffer]);
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = meta.name;
+              a.click();
+            });
+          }
+        } catch {}
+      });
+
+      peer.signal(JSON.parse(signalData));
+    }
+  </script></body>
 </html>
