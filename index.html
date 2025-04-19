@@ -130,16 +130,16 @@
       formData.append("file", file);
 
       try {
-        // Transfer.sh API URL
-        const res = await fetch("https://transfer.sh/api/v1/upload", {
+        // File.io API URL
+        const res = await fetch("https://file.io", {
           method: "POST",
           body: formData
         });
 
         const data = await res.json();
 
-        if (data.url) {
-          const link = data.url;  // Transfer.sh provides a "url" in the response
+        if (data.success) {
+          const link = data.link;
           status.innerHTML = `<strong>${file.name}</strong> uploaded successfully!`;
           downloadSection.innerHTML = `<a href="${link}" target="_blank" class="download-link">Download Link</a>`;
 
