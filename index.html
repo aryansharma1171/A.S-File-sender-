@@ -145,16 +145,16 @@
       const html5QrCode = new Html5Qrcode("reader");
 
       html5QrCode.start(
-        { facingMode: "environment" }, // camera settings (environment camera)
+        { facingMode: "environment" }, // Camera settings (use the environment camera)
         {
-          fps: 10, // 10 frames per second
-          qrbox: 250 // box size for QR scanning
+          fps: 10, // Set frames per second for scanning
+          qrbox: 250 // Size of the scanning box
         },
         (decodedText, decodedResult) => {
           document.getElementById('scannerStatus').innerText = 'QR code scanned!';
           if (currentQRData !== decodedText) {
             currentQRData = decodedText;
-            peer.signal(JSON.parse(decodedText));
+            peer.signal(JSON.parse(decodedText)); // Pass the signal data to establish the connection
           }
         },
         (errorMessage) => {
