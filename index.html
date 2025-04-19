@@ -76,16 +76,15 @@
     <canvas id="qrCanvas"></canvas>
     <p id="status"></p>
     <p>Or scan the QR code from another device:</p>
-    <video id="scanner" autoplay></video>
+    <div id="reader" style="width: 300px; height: 300px;"></div>
     <p id="scannerStatus"></p>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/simple-peer@9/simplepeer.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-  <script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
   <script>
     let peer;
-    let scanner;
     let currentQRData = null;
 
     function startShare() {
@@ -141,20 +140,28 @@
       startScanner();
     }
 
-    // QR Code scanner setup
+    // QR Code scanner setup with html5-qrcode library
     function startScanner() {
-      scanner = new ZXing.BrowserQRCodeReader();
-      scanner.decodeFromVideoDevice(null, 'scanner', (result, err) => {
-        if (result) {
+      const html5QrCode = new Html5Qrcode("reader");
+
+      html5QrCode.start(
+        { facingMode: "environment" }, // camera settings (environment camera)
+        {
+          fps: 10, // 10 frames per second
+          qrbox: 250 // box size for QR scanning
+        },
+        (decodedText, decodedResult) => {
           document.getElementById('scannerStatus').innerText = 'QR code scanned!';
-          if (currentQRData !== result.text) {
-            currentQRData = result.text;
-            peer.signal(JSON.parse(result.text));
+          if (currentQRData !== decodedText) {
+            currentQRData = decodedText;
+            peer.signal(JSON.parse(decodedText));
           }
-        }
-        if (err) {
+        },
+        (errorMessage) => {
           document.getElementById('scannerStatus').innerText = 'Error scanning QR code';
         }
+      ).catch((err) => {
+        document.getElementById('scannerStatus').innerText = 'Unable to access camera';
       });
     }
   </script>
